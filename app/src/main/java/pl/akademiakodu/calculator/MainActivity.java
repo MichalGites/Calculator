@@ -1,6 +1,7 @@
 package pl.akademiakodu.calculator;
 
 import android.os.AsyncTask;
+import android.os.Handler;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.View;
@@ -27,6 +28,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     List<String> numbers =Arrays.asList("0", "1", "2", "3", "4", "5", "6", "7", "8", "9");
     List<String> dzialania = Arrays.asList("+", "-", "*", "/");
+
+    private float resultNumber;
+    private boolean showResult;
+    private boolean isCorrect;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -86,36 +91,54 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         } else{
             numberTwo.append(number);
         }
+        showOperation();
     }
 
-    private void calculate (){
-        if (numberOne.equals("")){
+    private boolean check(){
+        if (numberOne.toString().equals("")){
             Toast.makeText(this, "Uzupełnij pierwszą liczbę!", Toast.LENGTH_SHORT).show();
-            return;
+            return false;
         }
-        if (numberTwo.equals("")){
+        if (numberTwo.toString().equals("")){
             Toast.makeText(this, "Uzupełnij drugą liczbę!", Toast.LENGTH_SHORT).show();
-            return;
+            return false;
         }
         if (dzialanie.equals("")){
             Toast.makeText(this, "Uzupełnij znak działania!", Toast.LENGTH_SHORT).show();
-            return;
+            return false;
         }
-        int number1 = Integer.valueOf(numberOne.toString());
-        int number2 = Integer.valueOf(numberTwo.toString());
+        if (numberTwo.toString().equals("0")){
+            Toast.makeText(this, "Nie wolno dzielić przez ZERO!", Toast.LENGTH_SHORT).show();
+            return false;
+        }
+        return true;
+    }
+
+    private boolean calculate (){
+
+        float number1 = Float.valueOf(numberOne.toString());
+        float number2 = Float.valueOf(numberTwo.toString());
         int operationResult = 0;
         switch (dzialanie){
-            case "/":
-                if (number2==0){
-                    Toast.makeText(this, "Nie wolno dzielić przez ZERO!", Toast.LENGTH_SHORT).show();
-                    return;
-                }
-                operationResult = number1/ number2; break;
-            case "*": operationResult = number1 * number2; break;
-            case "+": operationResult = number1 + number2; break;
-            case "-": operationResult = number1 - number2; break;
+            case "/": resultNumber = number1/ number2; break;
+            case "*": resultNumber = number1 * number2; break;
+            case "+": resultNumber = number1 + number2; break;
+            case "-": resultNumber = number1 - number2; break;
         }
-        result.setText(showOperation()+ "="+operationResult);
+        return true;
+    }
+
+    private void showOperationResult(float number){
+        result.setText(showOperation()+"="+ number);
+        showResult = true;
+        new Handler().postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                if (showResult){
+                    clean();
+                }
+            }
+        }, 8000);
 
     }
 
@@ -133,20 +156,24 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     @Override
     public void onClick(View view) {
-        if (view instanceof Button) {
-            Button b = (Button) view;
-            if (numbers.contains(b.getText())) {
-                addNumber(b.getText().toString());
-            } else if (dzialania.contains(b.getText())) {
-                dzialanie = b.getText().toString();
-            } else{
-                if (view.getId() == equals.getId()){
-                    calculate();
-                } else if(view.getId() == clear.getId()){
+        Button b = (Button) view;
+        if (numbers.contains(b.getText())) {
+            addNumber(b.getText().toString());
+        } else if (dzialania.contains(b.getText())) {
+            dzialanie = b.getText().toString();
+            showOperation();
+            if (showResult){
+                showResult=false;
+                clean();
+            }
+        } else{
+            if (view.getId() == equals.getId()){
+                    new CalTask().execute();
+            } else if(view.getId() == clear.getId()){
                     clean();
-                }
             }
         }
+
     }
 
     private class CalTask extends AsyncTask<Void, Void, Void>{
@@ -154,9 +181,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         @Override
         protected Void doInBackground(Void... voids) {
+            if (isCorrect){
+                calculate();
+            }
             for (int i=0; i<=3; i++){
                 try {
-                    Thread.sleep(1000);
+                    Thread.sleep(300);
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
@@ -167,11 +197,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         @Override
         protected void onPostExecute (Void aVoid){
             progress.setVisibility(View.GONE);
-            MainActivity.this.calculate();
+            showOperationResult(resultNumber);
         }
 
         @Override
         protected void onPreExecute (){
+            isCorrect = check();
             progress.setVisibility(View.VISIBLE);
         }
 
