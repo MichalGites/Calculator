@@ -16,7 +16,7 @@ import java.util.List;
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
 
     Button b0, b1, b2, b3, b4, b5, b6, b7, b8, b9;
-    Button plus, minus, multiply, divide;
+    Button plus, minus, multiply, divide, sqrt;
     Button equals, clear;
     TextView result;
 
@@ -27,9 +27,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     ProgressBar progress;
 
     List<String> numbers =Arrays.asList("0", "1", "2", "3", "4", "5", "6", "7", "8", "9");
-    List<String> dzialania = Arrays.asList("+", "-", "*", "/");
+    List<String> dzialania = Arrays.asList("+", "-", "*", "/", "sqrt");
 
-    private float resultNumber;
+    private double resultNumber;
     private boolean showResult;
     private boolean isCorrect;
 
@@ -75,6 +75,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         multiply.setOnClickListener(this);
         divide = (Button) findViewById(R.id.divide);
         divide.setOnClickListener(this);
+        sqrt = (Button) findViewById(R.id.sqrt);
+        sqrt.setOnClickListener(this);
 
         equals = (Button) findViewById(R.id.equals);
         equals.setOnClickListener(this);
@@ -96,39 +98,54 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     private boolean check(){
         if (numberOne.toString().equals("")){
-            Toast.makeText(this, "Uzupełnij pierwszą liczbę!", Toast.LENGTH_SHORT).show();
-            return false;
-        }
-        if (numberTwo.toString().equals("")){
-            Toast.makeText(this, "Uzupełnij drugą liczbę!", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Uzupełnij pierwszą liczbę - nawet jeśli tylko pierwiastkujesz!", Toast.LENGTH_SHORT).show();
             return false;
         }
         if (dzialanie.equals("")){
             Toast.makeText(this, "Uzupełnij znak działania!", Toast.LENGTH_SHORT).show();
             return false;
         }
-        if (numberTwo.toString().equals("0")){
-            Toast.makeText(this, "Nie wolno dzielić przez ZERO!", Toast.LENGTH_SHORT).show();
+        if (numberTwo.toString().equals("")){
+            Toast.makeText(this, "Uzupełnij drugą liczbę!", Toast.LENGTH_SHORT).show();
             return false;
+        }
+        if (dzialanie.equals("/")) {
+            if(numberTwo.toString().equals("0")){
+                Toast.makeText(this, "Nie wolno dzielić przez ZERO!", Toast.LENGTH_SHORT).show();
+                return false;
+            }
         }
         return true;
     }
 
     private boolean calculate (){
 
-        float number1 = Float.valueOf(numberOne.toString());
-        float number2 = Float.valueOf(numberTwo.toString());
+        double number1 = Double.valueOf(numberOne.toString());
+        double number2 = Double.valueOf(numberTwo.toString());
         int operationResult = 0;
         switch (dzialanie){
-            case "/": resultNumber = number1/ number2; break;
+            case "/":
+                if (number2==0){
+                    Toast.makeText(this, "Nie wolno dzielić przez ZERO!", Toast.LENGTH_SHORT).show();
+                    return false;
+                }else{
+                    resultNumber = number1/ number2;
+                } break;
             case "*": resultNumber = number1 * number2; break;
             case "+": resultNumber = number1 + number2; break;
             case "-": resultNumber = number1 - number2; break;
+            case "sqrt":
+                if (number2<0){
+                    Toast.makeText(this, "Pierwiastek z liczb ujemnych nie istnieje!", Toast.LENGTH_SHORT).show();
+                    return false;
+                } else {
+                    resultNumber = Math.sqrt(number2); break;
+                }
         }
         return true;
     }
 
-    private void showOperationResult(float number){
+    private void showOperationResult(double number){
         result.setText(showOperation()+"="+ number);
         showResult = true;
         new Handler().postDelayed(new Runnable() {
@@ -150,8 +167,13 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     private String showOperation(){
-        result.setText(numberOne.toString()+" "+dzialanie+" "+numberTwo.toString());
-        return numberOne.toString()+" "+dzialanie+" "+numberTwo.toString();
+        if (numberOne.toString().equals("") | dzialanie.equals("sqrt")){
+            result.setText(dzialanie+" "+numberTwo.toString());
+            return dzialanie + " " +numberTwo.toString();
+        } else {
+            result.setText(numberOne.toString()+" "+dzialanie+" "+numberTwo.toString());
+            return numberOne.toString()+" "+dzialanie+" "+numberTwo.toString();
+        }
     }
 
     @Override
@@ -181,6 +203,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         @Override
         protected Void doInBackground(Void... voids) {
+            // ta metoda wykonuje się w innym wątku - wątek poboczny
+            // należy pamiętać, że edycję widżetów, layoutu itd (komponenty graficzne) możemy wykonywać tylko w wątku głównym!!!!!!!
             if (isCorrect){
                 calculate();
             }
